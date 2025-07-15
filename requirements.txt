@@ -7,6 +7,9 @@ pdf2image==1.17.0
 # OCR: extrai texto de imagens usando o Tesseract
 pytesseract==0.3.10
 
+# Tokenização de sentenças e palavras
+nltk==3.9.1
+
 # Carrega variáveis de ambiente a partir de um arquivo .env
 python-dotenv==1.1.1
 
@@ -16,5 +19,17 @@ numpy==1.26.4
 # Banco de dados vetorial local para busca semântica (embeddings)
 chromadb==0.4.24
 
-# Cliente oficial para acessar APIs da OpenAI (incluindo embeddings e GPT)
-openai==1.30.1
+# Cliente HTTP assíncrono para chamadas de API
+#httpx==0.28.1
+
+# Gera embeddings localmente sem API, compatível com FAISS e ChromaDB
+sentence-transformers==5.0.0
+
+# Interface Python para executar modelos LLM localmente via Ollama (ex: LLaMA3, Mistral, Phi)
+ollama==0.5.1
+
+
+# Cliente oficial para acessar APIs da Google (incluindo embeddings)
+#google-generativeai==0.8.5
+#openai==1.30.1
+#openai==1.94.0

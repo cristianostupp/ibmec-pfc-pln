@@ -1,6 +1,15 @@
 import fitz     # PyMuPDF
 import os
 import re
+import nltk
+from nltk.tokenize import PunktSentenceTokenizer
+
+# Garante que o tokenizer de sentenças esteja disponível
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+
 
 class Decodificador:
 
@@ -48,10 +57,27 @@ class Decodificador:
 
     # Script para limpeza inicial do texto 
     def limpar_texto(self, texto):
-        # Remove múltiplas quebras de linha e espaços
-        texto = re.sub(r'\n+', '\n', texto)     # várias quebras de linha -> uma
-        texto = re.sub(r'[ \t]+', ' ', texto)   # múltiplos espaços/tabs -> um
+        # Remoção de artefatos de OCR
+        texto = re.sub(r'-{3,}.*?-{3,}', '', texto)  # Ex: "--- Página 9 ---"
+        texto = re.sub(r'\b[Pp]ágina\s*\d+\b', '', texto)
+        texto = re.sub(r'\b[Dd][Nn][Ss]\b', '', texto)
+        texto = re.sub(r'\b[Nn]\s*[xX]\b', '', texto)
+        texto = re.sub(r'Federação.*?(?=\n)', '', texto)
+        texto = re.sub(r'^[|_ \-\s]{3,}$', '', texto, flags=re.MULTILINE)
+        texto = re.sub(r'\|{1,}', '', texto)
+        texto = re.sub(r'\)\s*,', '', texto)
+
+        # Padronização de espaços e pontuação
+        texto = re.sub(r'\s+([.,!?;:])', r'\1', texto)               # remove espaço antes de pontuação
+        texto = re.sub(r'([.,!?;:])([^\s])', r'\1 \2', texto)        # garante espaço depois de pontuação
+        texto = re.sub(r'\.{2,}', '.', texto)                        # reduz vários pontos para um
+        texto = re.sub(r'([!?]){2,}', r'\1', texto)                  # reduz múltiplos "!" ou "?" para um
+        texto = re.sub(r'[ \t]+', ' ', texto)                        # reduz múltiplos espaços para um
+        texto = re.sub(r'\n+', '\n', texto)                          # múltiplas quebras de linha → uma
+
+        # Normalização final
         texto = texto.strip()
+
         return texto
 
 
@@ -63,21 +89,32 @@ class Decodificador:
 
 
     # Implementação da lógica de "chunking" (divisão de texto em pedaços menores)
-    def gerar_chunks_para_todas_clausulas(self, tamanho_max=2000, sobreposicao=300):
-        
-        def gerar_chunks(texto, tamanho_max=2000, sobreposicao=300):
-            chunks = []
-            inicio = 0
-            while inicio < len(texto):
-                fim = inicio + tamanho_max
-                chunk = texto[inicio:fim]
-                chunks.append(chunk.strip())
-                inicio += tamanho_max - sobreposicao  # move com sobreposição
-            return chunks
+    def gerar_chunks_para_todas_clausulas(self, tamanho_max=2000):
+        def gerar_chunks_por_sentencas(texto, tamanho_max):
             
+            #sentencas = sent_tokenize(texto, language='portuguese')
+            # Carrega tokenizer treinado para português
+            tokenizer = PunktSentenceTokenizer(lang_vars=nltk.tokenize.punkt.PunktLanguageVars())
+
+            # Usa para dividir o texto em sentenças
+            sentencas = tokenizer.tokenize(texto)
+
+            chunks = []
+            chunk = ""
+
+            for sent in sentencas:
+                if len(chunk) + len(sent) + 1 <= tamanho_max:
+                    chunk += " " + sent
+                else:
+                    chunks.append(chunk.strip())
+                    chunk = sent
+            if chunk:
+                chunks.append(chunk.strip())
+            return chunks
+
         todos_chunks = []
         for i, clausula in enumerate(self.clausulas):
-            chunks = gerar_chunks(clausula, tamanho_max, sobreposicao)
+            chunks = gerar_chunks_por_sentencas(clausula, tamanho_max)
             for j, chunk in enumerate(chunks):
                 todos_chunks.append({
                     "id": f"clausula_{i+1}_chunk_{j+1}",
