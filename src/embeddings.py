@@ -1,17 +1,8 @@
-from dotenv import load_dotenv
-import os
-from openai import OpenAI
-
-load_dotenv()
+from sentence_transformers import SentenceTransformer
 
 class GeradorDeEmbedding:
-    def __init__(self, model="text-embedding-3-small"):
-        self.model = model
-        self.client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+    def __init__(self, modelo="models/all-MiniLM-L6-v2"):
+        self.modelo = SentenceTransformer(modelo)
 
     def gerar(self, texto: str):
-        response = self.client.embeddings.create(
-            input=texto,
-            model=self.model
-        )
-        return response.data[0].embedding
+        return self.modelo.encode(texto, convert_to_numpy=True).tolist()

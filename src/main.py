@@ -1,8 +1,10 @@
+from anyio import sleep
 from decodificador_de_normas import Decodificador
 from ocr import OCR
 from ingestor import Ingestor
+from db_vetorial import DBVetorial
 
-caminho_do_arquivo = 'files/CCT-Siescomet-2024-2025-4-9_ocr.txt'
+caminho_do_arquivo = 'files/cct-siescomet-2024-2025_ocr.txt'
 
 decodificador = Decodificador(caminho_do_arquivo)
 
@@ -21,5 +23,18 @@ decodificador.pre_processar()
 ingestor = Ingestor()
 ingestor.processar_chunks(decodificador.chunks)
 
-print(decodificador.clausulas)
-print(decodificador.chunks)
+# ...
+print("\n--- Verificação pós-ingestão ---")
+db_verificacao = DBVetorial() # Esta linha é crucial para verificar se está lendo do disco
+print(f"DEBUG: Total de documentos na coleção 'acordos' APÓS EXECUÇÃO DE MAIN.PY: {db_verificacao.collection.count()}")
+print("--------------------------------\n")
+sleep(10)  # Aguarda 1 segundo para garantir que a saída seja limpa antes de imprimir
+# ...
+
+#print(decodificador.clausulas)
+#print(decodificador.chunks)
+
+print("📦 Total de chunks inseridos:", len(ingestor.db.collection.get()["documents"]))
+
+for doc in ingestor.db.collection.get()["documents"][:3]:
+    print("\n📄", doc[:300])
